@@ -1,14 +1,18 @@
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
-
 import numpy as np
 
+# Load processor
 processor = AutoProcessor.from_pretrained("facebook/musicgen-large")
-model = MusicgenForConditionalGeneration.from_pretrained("./fb-musicgen-large.model")
-print("Loading model")
 
-bpmString = "at 120 beats per minute"
-styleString = "in the classical Chopin style"
-otherString = "with piano only"
+# Load model locally ( previously saved )
+model = MusicgenForConditionalGeneration.from_pretrained("./fb-musicgen-large.model")
+
+bpmString = "at 120 beats per minute"           # beats per minute
+styleString = "in the classical Chopin style"   # style
+otherString = "with piano only"                 # other embellishments
+
+# The original idea was to ask GPT-4 for a list of prompts for musicgen given a scenario
+# This was the result, but eventually not used as the music slices were disjoint
 
 city_scenes = [
     "Skyscrapers casting morning shadows",
@@ -42,13 +46,8 @@ city_scenes = [
     "Night markets sizzle and aroma",
     "Clock tower chimes noon hour"
 ]
-short_scenes = [
-    "Skyscrapers casting morning shadows"
-#    "Horns blaring distant traffic jams",
-#    "Street vendors calling out wares",
-#    "Clock tower chimes noon hour"
-]
 
+# Our initial sample is based on a text prompt
 aa = 0
 sampling_rate = model.config.audio_encoder.sampling_rate
 
@@ -65,6 +64,7 @@ audio_values = model.generate(**inputs, max_new_tokens=256)
 print(audio_values.shape)
 concatAudio = audio_values[0,0].numpy()
 
+# Subsequent samples are audio prompted on the previous samples
 for i in range(1, 5):
     sample = concatAudio
     sample = sample[: len(sample) // 2]
@@ -82,7 +82,7 @@ for i in range(1, 5):
 
     concatAudio = np.concatenate((concatAudio, audio_values2[0, 0].numpy()))
 
-
+# Write the whole thing out to a wav file
 import scipy
 print("writing: " + promptStr + ".wav")
 scipy.io.wavfile.write(promptStr + ".wav", rate=sampling_rate, data=concatAudio)
